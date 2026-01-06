@@ -1,43 +1,42 @@
-ERROR: Connection timed out.
-ERROR: Connection timed out.
-ERROR: Connection timed out.
-ERROR: Connection timed out.
-ERROR: Connection timed out.
+The quick brown fox jumps over the lazy dog.
+The quick brown fox jumps over the lazy dog again.
+The quick brown fox jumps over the very lazy dog, again and again.
 
-WARNING: Retrying connection.
-WARNING: Retrying connection.
-WARNING: Retrying connection.
-WARNING: Retrying connection.
+Peter Piper picked a peck of pickled peppers.
+A peck of pickled peppers Peter Piper picked.
+If Peter Piper picked a peck of pickled peppers, where's the peck of pickled peppers Peter Piper picked?
 
-INFO: Connection established.
-INFO: Connection established.
-INFO: Connection established.
-INFO: Connection established.
+She sells seashells by the seashore.
+The shells she sells are seashells, I'm sure.
+Surely, the seashells she sells by the seashore are seashells she surely sells.
 
-User admin logged in.
-User admin logged in.
-User admin logged in.
-User admin logged in.
-User admin logged in.
+How much wood would a woodchuck chuck
+if a woodchuck could chuck wood?
+A woodchuck would chuck as much wood as a woodchuck could chuck,
+if a woodchuck could chuck wood.
 
-Fetching data from server...
-Fetching data from server...
-Fetching data from server...
-Fetching data from server...
+Buffalo buffalo Buffalo buffalo buffalo buffalo Buffalo buffalo.
+Buffalo buffalo buffalo.
+Buffalo Buffalo buffalo buffalo Buffalo.
+(Yes, this sentence is still grammatically legal. Don't ask why. Linguistics is weird.)
 
-Processing data...
-Processing data...
-Processing data...
-Processing data...
-Processing data...
+Compression algorithms like repetition.
+Compression algorithms love repetition.
+Compression algorithms love repetition, repetition, repetition.
 
-Saving results to disk.
-Saving results to disk.
-Saving results to disk.
-Saving results to disk.
+Data compression reduces redundancy.
+Redundancy reduces data size.
+Reducing redundancy reduces data size significantly.
+Reducing redundancy reduces data size significantly and repeatedly.
 
-Operation completed successfully.
-Operation completed successfully.
-Operation completed successfully.
-Operation completed successfully.
-Operation completed successfully.
+Deflate combines LZ77 and Huffman coding.
+Deflate combines LZ77 and Huffman coding efficiently.
+Efficient deflate compression depends on repeated patterns and symbols.
+
+Symbols repeat.
+Symbols repeat again.
+Symbols repeat again and again and again.
+
+Testing compression is important.
+Testing compression is very important.
+Testing compression is extremely important for reliable software.

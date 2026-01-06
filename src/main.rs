@@ -1,8 +1,9 @@
+#![allow(dead_code)]
 mod serializer;
 mod commandline;
+mod utils;
 
-use std::{fs, path::PathBuf};
-
+use std::fs;
 use serializer::{serialize, deserialize};
 use commandline::CommandLine;
 
@@ -27,13 +28,19 @@ fn main(){
         let input = fs::read_to_string(input_path)
             .expect("Failed to read the input file");
 
-        let lz_output = lz77::run(&input);
-        let serialized = serialize(&lz_output);
-        huffman::run(&serialized, &output_path);
+        let lz_encoded = lz77::compress(&input);
+        let serialized = serialize(&lz_encoded);
+        huffman::encode(&serialized, &output_path);
     } else if should_decompress {
-        let input = huffman::read_huffman_file(
-            PathBuf::from(&input_path));
-        todo!()
+        let huffman_decoded = huffman::decode(&input_path);        
+        let deserialized = deserialize(&huffman_decoded)
+            .expect("Deserialization failed");
+
+
+        let decompressed = lz77::decompress(&deserialized);
+
+        fs::write(output_path, decompressed)
+            .expect("Failed to write the decompressed file");
     }
 
 }
