@@ -39,8 +39,10 @@ fn main(){
 
         let decompressed = lz77::decompress(&deserialized);
 
-        fs::write(output_path, decompressed)
+        fs::write(&output_path, decompressed)
             .expect("Failed to write the decompressed file");
+
+        println!("Successfully decompressed and written to {output_path}");
     }
 
 }

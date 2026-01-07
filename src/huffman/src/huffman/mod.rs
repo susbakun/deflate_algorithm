@@ -8,13 +8,17 @@ use huffman_node::HuffmanNode;
 #[derive(Debug)]
 pub struct Huffman {
     pub table: HashMap<u8, BitVec<u8>>,
+    pub counts: HashMap<u8, u16>
 }
 
 impl Huffman{
     pub fn from_decoded(input: &Vec<u8>) -> Self {
-        let root = HuffmanNode::new(&input);
+        let counts = Self::count_chars(&input);
+        let root = HuffmanNode::new(&counts);
+        
         let mut huffman = Huffman {
             table: HashMap::new(),
+            counts
         };
 
         huffman.make_table(Box::new(root),
@@ -23,10 +27,25 @@ impl Huffman{
         huffman
     }
 
+    pub fn count_chars(input: &Vec<u8>) -> HashMap<u8, u16> {
+        let mut counts = HashMap::new();
+        input.iter().for_each(|char| {
+            if counts.contains_key(char) {
+                let char_freq = counts.get_mut(char).unwrap();
+                *char_freq += 1;
+            }else {
+                counts.insert(char.clone(), 1);
+            }
+        });
+
+        counts
+    }
+
     pub fn from_encoded(counts: HashMap<u8, u16>) -> Self {
-        let root = HuffmanNode::from_given_counts(counts);
+        let root = HuffmanNode::new(&counts);
         let mut huffman = Huffman {
             table: HashMap::new(),
+            counts
         };
 
         huffman.make_table(Box::new(root),

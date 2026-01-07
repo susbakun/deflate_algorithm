@@ -25,15 +25,8 @@ impl PartialOrd for HuffmanNode{
 type MinHeap = BinaryHeap<HuffmanNode>;
 
 impl HuffmanNode {
-    pub fn new(input: &Vec<u8>) -> Self{
-        let counts = Self::count_chars(input);
-
-        let mut min_heap = Self::build_min_heap(counts);
-        Self::build_tree(&mut min_heap)
-    }
-
-    pub fn from_given_counts(counts: HashMap<u8, u16>) -> Self {
-        let mut min_heap = Self::build_min_heap(counts);
+    pub fn new(counts: &HashMap<u8, u16>) -> Self{
+        let mut min_heap = Self::build_min_heap(counts.clone());
         Self::build_tree(&mut min_heap)
     }
 
@@ -63,20 +56,6 @@ impl HuffmanNode {
         }
 
         min_heap.pop().unwrap()
-    }
-
-    pub fn count_chars(input: &Vec<u8>) -> HashMap<u8, u16> {
-        let mut counts = HashMap::new();
-        input.iter().for_each(|char| {
-            if counts.contains_key(char) {
-                let char_freq = counts.get_mut(char).unwrap();
-                *char_freq += 1;
-            }else {
-                counts.insert(char.clone(), 1);
-            }
-        });
-
-        counts
     }
 
     pub fn build_min_heap(counts: HashMap<u8, u16>) -> MinHeap {

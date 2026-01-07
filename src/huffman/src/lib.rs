@@ -1,5 +1,4 @@
 #![allow(dead_code)]
-use std::collections::HashMap;
 use std::path::PathBuf;
 
 mod huffman;
@@ -13,10 +12,7 @@ pub fn encode(input: &Vec<u8>, output_path: &String) {
     let encoded = huffman.encode(input);
 
     // compute symbol frequencies to store in the header
-    let mut counts: HashMap<u8, u16> = HashMap::new();
-    for b in input {
-        *counts.entry(*b).or_insert(0) += 1;
-    }
+    let counts = huffman.counts;
 
     write_bits_to_file(PathBuf::from(&output_path), &encoded, &counts)
         .expect("Couldn't write to the file");
