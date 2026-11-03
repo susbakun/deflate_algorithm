@@ -1,72 +1,63 @@
 # Deflate
 
-A Rust implementation of DEFLATE-style compression combining LZ77 and Huffman coding.
+A Rust command-line file compressor that combines LZ77 matching with Huffman coding. It reads input as bytes, represents LZ77 output as literal and match tokens, then Huffman-encodes the resulting symbols into a file.
 
-## Overview
+## Build
 
-This project implements a two-stage compression pipeline:
-1. **LZ77** - Replaces repeated sequences with back-references (offset, length, next_char)
-2. **Huffman Coding** - Encodes the serialized LZ77 output using variable-length prefix codes
+Requires Rust and Cargo. Build the project with:
+
+```bash
+cargo build --release
+```
 
 ## Usage
 
+Compress a file:
+
 ```bash
-# Compress a file
-cargo run -- -c -i input.txt -o output.dfl
-
-# Decompress a file
-cargo run -- -d -i output.dfl -o decompressed.txt
+cargo run --release -- --compress --input input.txt --output output.dfl
 ```
 
-## Options
+Decompress it:
 
-| Flag | Description |
-|------|-------------|
-| `-c` | Compress mode |
-| `-d` | Decompress mode |
-| `-i <path>` | Input file path (default: `resources/L.txt`) |
-| `-o <path>` | Output file path (default: `output.dfl`) |
-
-## Project Structure
-
-```
-deflate/
-├── src/
-│   ├── main.rs          # CLI entry point
-│   ├── serializer.rs    # LZ77 triple serialization/deserialization
-│   ├── commandline.rs   # Argument parsing
-│   ├── utils.rs         # Helper functions
-│   ├── huffman/         # Huffman coding library
-│   └── lz77/            # LZ77 compression library
-└── resources/           # Sample input files
+```bash
+cargo run --release -- --decompress --input output.dfl --output restored.txt
 ```
 
-## How It Works
+Short flags are also available: `-c`, `-d`, `-i`, and `-o`. If omitted, the input path defaults to `resources/L.txt` and the output path defaults to `output.dfl`.
 
-### Compression
-1. Read input file as text
-2. LZ77 encodes the text into triples `(offset, length, next_char)`
-3. Serialize triples into a byte stream
-4. Huffman encode the byte stream and write to output
+| Option | Description |
+| --- | --- |
+| `-c`, `--compress` | Compress the input file |
+| `-d`, `--decompress` | Decompress the input file |
+| `-i`, `--input <path>` | Input file path |
+| `-o`, `--output <path>` | Output file path |
+| `-h`, `--help` | Print command-line usage |
 
-### Decompression
-1. Read Huffman-encoded file (includes frequency table in header)
-2. Decode using Huffman tree reconstructed from frequencies
-3. Deserialize byte stream back into LZ77 triples
-4. Decompress triples to recover original text
+Choose one operation (`--compress` or `--decompress`) per run.
 
-## Compression Results
+## How it works
 
-Tested on `resources/L.text`:
+1. The LZ77 encoder searches up to 32 KiB behind the current position and emits either a literal byte or a `(length, distance)` match. Matches are limited to 258 bytes and are emitted when at least 3 bytes long.
+2. The token stream is mapped to `u16` symbols: literals use their byte value; matches use one symbol for the length and one for the distance.
+3. The Huffman encoder writes the symbol stream and its frequency table to the output file. The frequency table lets the decoder rebuild the Huffman tree.
+4. Decompression reverses those steps, rebuilding the tokens and expanding them into the original bytes. The current CLI converts the result to UTF-8 text, so decompression expects valid UTF-8 input data.
 
-| Metric | Value |
-|--------|-------|
-| Original size | 1,638 bytes |
-| Compressed size | 1,087 bytes |
-| Compression ratio | 33.6% reduction |
+## Project layout
+
+```text
+src/
+├── main.rs             # CLI compression and decompression flow
+├── commandline.rs      # Command-line options
+├── utils.rs            # Shared I/O helpers
+├── lz77/               # LZ77 token encoding and decoding library
+└── huffman/            # Huffman coding and compressed-file I/O library
+```
+
+The `lz77` and `huffman` directories are local Cargo crates used by the command-line application.
 
 ## Dependencies
 
-- `anyhow` - Error handling
-- `bitvec` - Bit-level operations for Huffman coding
-- `getopts` - Command-line argument parsing
+- `anyhow` for error handling
+- `bitvec` for Huffman bit streams
+- `getopts` for command-line parsing

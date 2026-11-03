@@ -1,61 +1,47 @@
 # LZ77
 
-A Rust library implementing the LZ77 lossless compression algorithm.
-
-## Overview
-
-LZ77 compresses data by replacing repeated sequences with back-references to earlier occurrences. Output is a sequence of triples: `(offset, length, next_char)`.
+A Rust library that compresses byte slices into LZ77 literal and back-reference tokens.
 
 ## Usage
 
 ```rust
 use lz77::{compress, decompress};
 
-let input = "ABABABCABC".to_string();
-let compressed = compress(&input);
-let decompressed = decompress(&compressed);
+let input = b"ABABABC";
+let tokens = compress(input);
+let restored = decompress(&tokens).expect("input is valid UTF-8");
 
-assert_eq!(input, decompressed);
+assert_eq!(restored.as_bytes(), input);
 ```
 
-## API
+`compress` accepts arbitrary bytes. `decompress` currently returns a `String`, so it returns an error if the expanded bytes are not valid UTF-8.
+
+## Token format
+
+The encoder produces a sequence of:
 
 ```rust
-// Compress a string into LZ77 triples
-pub fn compress(input: &String) -> Vec<Triple>
-
-// Decompress triples back to string
-pub fn decompress(compressed_input: &Vec<Triple>) -> String
-
-// Check if a triple is a literal (no back-reference)
-pub fn is_literal(triple: Triple) -> bool
+pub enum Token {
+    Lit(u8),
+    Match { len: u16, dist: u16 },
+}
 ```
 
-## Triple Format
+- `Lit(byte)` stores one input byte directly.
+- `Match { len, dist }` copies `len` bytes from `dist` bytes before the current output position. Copies can overlap, as in standard LZ77 decoding.
+
+The encoder searches the previous 32 KiB for the longest match. It emits matches of at least 3 bytes, with a maximum length of 258 bytes. Otherwise it emits a literal.
+
+## Public API
 
 ```rust
-pub type Triple = (u16, u16, Option<char>);
-//                 offset, length, next_char
+pub const MAX_SIZE: usize = 32768;
+
+pub fn compress(input: &[u8]) -> Vec<Token>;
+pub fn decompress(compressed_input: &Vec<Token>) -> Result<String, String>;
+
+pub fn tokens_to_symbols(tokens: &Vec<Token>) -> Vec<u16>;
+pub fn symbols_to_tokens(symbols: &Vec<u16>) -> Vec<Token>;
 ```
 
-| Type | Offset | Length | Next Char |
-|------|--------|--------|-----------|
-| Literal | 0 | 0 | Some(char) |
-| Match | >0 | >0 | Some(char) or None |
-
-- **Literal**: No match found, emit the character directly
-- **Match**: Copy `length` bytes from `offset` positions back, then emit `next_char`
-
-## Example
-
-Input: `"ABABABC"`
-
-```
-'A' -> (0, 0, Some('A'))     # literal
-'B' -> (0, 0, Some('B'))     # literal
-'ABAB' -> (2, 4, Some('C'))  # match: go back 2, copy 4, then 'C'
-```
-
-## Constants
-
-- `MAX_SIZE: usize = 4096` - Maximum search buffer size
+The symbol conversion helpers support the parent application’s Huffman stage. Literals map to their byte values; matches map to two symbols, one for length and one for distance. This representation is intended for the project’s compressor format.
