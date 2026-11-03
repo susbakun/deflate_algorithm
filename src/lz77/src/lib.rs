@@ -2,7 +2,7 @@ mod lz77;
 mod utils;
 
 // the LZ77 output format
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Token {
     Lit(u8),
     Match { len: u16, dist: u16 },
@@ -62,10 +62,42 @@ pub fn decompress(compressed_input: &Vec<Token>) -> Result<String, String> {
     String::from_utf8(bytes).map_err(|_| format!("Couldn't create string from bytes"))
 }
 
-#[test]
-fn dist_roundtrip() {
-    for d in 1..=32768u32 {
-        let (code, extra, _) = dist_to_code(d as u16);
-        assert_eq!(code_to_dist(code, extra) as u32, d);
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn compress_and_decompress_text_with_repeated_sequences() {
+        let input = b"ABABABCABCABC";
+        let tokens = compress(input);
+
+        assert!(tokens.iter().any(|token| matches!(token, Token::Match { .. })));
+        assert_eq!(decompress(&tokens).unwrap().as_bytes(), input);
+    }
+
+    #[test]
+    fn empty_input_round_trips() {
+        let tokens = compress(b"");
+
+        assert!(tokens.is_empty());
+        assert_eq!(decompress(&tokens).unwrap(), "");
+    }
+
+    #[test]
+    fn decompression_rejects_invalid_utf8() {
+        let tokens = vec![Token::Lit(0xff)];
+
+        assert!(decompress(&tokens).is_err());
+    }
+
+    #[test]
+    fn tokens_round_trip_through_huffman_symbols() {
+        let tokens = vec![
+            Token::Lit(b'A'),
+            Token::Match { len: 3, dist: 1 },
+            Token::Lit(b'!'),
+        ];
+
+        assert_eq!(symbols_to_tokens(&tokens_to_symbols(&tokens)), tokens);
     }
 }

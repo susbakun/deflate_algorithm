@@ -36,6 +36,10 @@ Short flags are also available: `-c`, `-d`, `-i`, and `-o`. If omitted, the inpu
 
 Choose one operation (`--compress` or `--decompress`) per run.
 
+## Compression result
+
+In a run on `mobby_dick.txt`, the input was 1,253,984 bytes and the compressed output was 780,788 bytes, a reduction of about 38%.
+
 ## How it works
 
 1. The LZ77 encoder searches up to 32 KiB behind the current position and emits either a literal byte or a `(length, distance)` match. Matches are limited to 258 bytes and are emitted when at least 3 bytes long.
@@ -61,3 +65,8 @@ The `lz77` and `huffman` directories are local Cargo crates used by the command-
 - `anyhow` for error handling
 - `bitvec` for Huffman bit streams
 - `getopts` for command-line parsing
+
+
+## TODOS
+- [ ] This program is relatively slow, need to find a way to make it faster
+- [ ] Using buckets we can improve the effectiveness of the algorithm

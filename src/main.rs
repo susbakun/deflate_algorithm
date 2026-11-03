@@ -10,7 +10,6 @@ fn main() {
     let commandline = CommandLine::new();
 
     let input_path = commandline.str_arg("i", "resources/L.txt");
-
     let output_path = commandline.str_arg("o", "output.dfl");
 
     let should_compress = commandline.is_present("c");
