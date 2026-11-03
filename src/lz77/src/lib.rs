@@ -1,8 +1,8 @@
-mod utils;
-pub use utils::is_literal;
 mod lz77;
+mod utils;
 
 // the LZ77 output format
+#[derive(Debug)]
 pub enum Token {
     Lit(u8),
     Match { len: u16, dist: u16 },

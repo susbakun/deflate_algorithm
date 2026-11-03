@@ -1,57 +1,31 @@
 use super::*;
 
-pub fn find_longest_match(
-    search_buffer: &Vec<u8>,
-    input_chars: &[u8],
-    current_idx: usize,
-) -> Option<(usize, usize)> {
-    if search_buffer.is_empty() || current_idx >= input_chars.len() {
+pub fn find_longest_match(input: &[u8], current_idx: usize) -> Option<(u16, u16)> {
+    if current_idx == 0 {
         return None;
     }
 
+    let window_start = current_idx.saturating_sub(MAX_SIZE);
     let mut best_match_len = 0;
-    let mut best_match_offset = 0;
+    let mut best_match_dist = 0;
 
     // Try to find the longest match starting at each position in the search buffer
-    for start_pos in 0..search_buffer.len() {
-        let mut match_len = 0;
-        let mut search_idx = start_pos;
-        let mut input_idx = current_idx;
+    for start_pos in window_start..current_idx {
+        let mut len = 0;
 
-        // Try to extend the match as long as possible
-        while search_idx < search_buffer.len()
-            && input_idx < input_chars.len()
-            && search_buffer[search_idx] == input_chars[input_idx]
+        while current_idx + len < input.len()
+            && len < 258
+            && input[start_pos + len] == input[current_idx + len]
         {
-            match_len += 1;
-            search_idx += 1;
-            input_idx += 1;
+            len += 1;
         }
 
-        // Update best match if this one is longer
-        if match_len > best_match_len {
-            best_match_len = match_len;
-            // Offset is distance from end of search buffer
-            best_match_offset = search_buffer.len() - start_pos;
+        if len > best_match_len {
+            best_match_len = len;
+            best_match_dist = current_idx - start_pos;
         }
     }
 
     // Only return a match if it's at least 3 characters (to make it worthwhile)
-    if best_match_len >= 3 {
-        Some((best_match_offset, best_match_len))
-    } else {
-        None
-    }
-}
-
-pub fn push_to_buffer(search_buffer: &mut Vec<u8>, byte: u8) {
-    if search_buffer.len() >= MAX_SIZE {
-        search_buffer.remove(0);
-    }
-
-    search_buffer.push(byte);
-}
-
-pub fn is_literal(triple: Token) -> bool {
-    return matches!(triple, Token::Lit(_));
+    (best_match_len >= 3).then(|| (best_match_dist as u16, best_match_len as u16))
 }

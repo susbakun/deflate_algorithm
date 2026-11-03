@@ -20,6 +20,7 @@ fn main() {
         let input = fs::read(input_path).expect("Failed to read the decompressed file");
 
         let lz_encoded = lz77::compress(&input);
+
         let symbols = tokens_to_symbols(&lz_encoded);
         huffman::encode(&symbols, &output_path);
     } else if should_decompress {

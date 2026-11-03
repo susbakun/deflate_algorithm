@@ -3,12 +3,11 @@ use super::utils::*;
 
 pub fn compress(input: &[u8]) -> Vec<Token> {
     let mut tokens: Vec<Token> = Vec::new();
-    let mut search_buffer: Vec<u8> = Vec::new();
     // Convert input to Vec<char> for efficient indexing
     let mut i = 0;
 
     while i < input.len() {
-        let matched = find_longest_match(&search_buffer, &input, i);
+        let matched = find_longest_match(&input, i);
 
         if let Some((offset, length)) = matched {
             // Add the match to output
@@ -17,17 +16,10 @@ pub fn compress(input: &[u8]) -> Vec<Token> {
                 dist: offset as u16,
             });
 
-            // Add matched characters to search buffer
-            for j in 0..length {
-                push_to_buffer(&mut search_buffer, input[i + j]);
-            }
-
-            // Also add the next character if it exists
-            i += length;
+            i += length as usize;
         } else {
             // no match found, output literal
             tokens.push(Token::Lit(input[i]));
-            push_to_buffer(&mut search_buffer, input[i]);
             i += 1;
         }
     }
