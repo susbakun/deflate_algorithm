@@ -7,7 +7,7 @@ mod io;
 pub use io::*;
 
 pub fn encode(input: &Vec<u16>, output_path: &String) {
-    let mut huffman = Huffman::from_decoded(input);
+    let (mut huffman, _) = Huffman::from_decoded(input);
     let encoded = huffman.encode(input);
 
     // compute symbol frequencies to store in the header
@@ -19,12 +19,12 @@ pub fn encode(input: &Vec<u16>, output_path: &String) {
     println!("Successfully compressed and written to {output_path}");
 }
 
-pub fn decode(input_path: &String) -> Vec<u16> {
+pub fn decode(input_path: &String) -> Option<Vec<u16>> {
     let (counts, payload) =
         read_huffman_file(PathBuf::from(input_path)).expect("Failed to read the file");
 
-    let mut huffman = Huffman::from_encoded(counts);
-    huffman.decode(&payload)
+    let (mut huffman, root) = Huffman::from_encoded(counts);
+    huffman.decode(&payload, &root)
 }
 
 #[cfg(test)]
@@ -36,25 +36,33 @@ mod tests {
 
     fn temporary_file_path() -> PathBuf {
         let id = NEXT_FILE_ID.fetch_add(1, Ordering::Relaxed);
-        std::env::temp_dir().join(format!("huffman-roundtrip-{}-{id}.dflt", std::process::id()))
+        std::env::temp_dir().join(format!(
+            "huffman-roundtrip-{}-{id}.dflt",
+            std::process::id()
+        ))
     }
 
     #[test]
     fn huffman_tree_round_trips_repeated_symbols() {
         let input = vec![7, 3, 7, 7, 12, 3, 9, 7, 12];
-        let mut huffman = Huffman::from_decoded(&input);
+        let (mut huffman, root) = Huffman::from_decoded(&input);
         let encoded = huffman.encode(&input);
+        let decoded = huffman.decode(&encoded, &root).unwrap();
 
-        assert_eq!(huffman.decode(&encoded), input);
+        assert_eq!(decoded, input);
     }
 
     #[test]
     fn huffman_tree_round_trips_a_single_symbol() {
         let input = vec![42; 25];
-        let mut huffman = Huffman::from_decoded(&input);
+        let (mut huffman, root) = Huffman::from_decoded(&input);
         let encoded = huffman.encode(&input);
 
-        assert_eq!(huffman.decode(&encoded), input);
+        println!("{root:?}");
+
+        let decoded = huffman.decode(&encoded, &root).unwrap();
+
+        assert_eq!(decoded, input);
     }
 
     #[test]
@@ -64,7 +72,8 @@ mod tests {
         let path_string = path.to_string_lossy().into_owned();
 
         encode(&input, &path_string);
-        assert_eq!(decode(&path_string), input);
+        let decoded = decode(&path_string).unwrap();
+        assert_eq!(decoded, input);
 
         std::fs::remove_file(path).unwrap();
     }

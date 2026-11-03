@@ -1,6 +1,6 @@
 use std::collections::{BinaryHeap, HashMap};
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub struct HuffmanNode {
     pub symbol: Option<u16>,
     pub count: u32,

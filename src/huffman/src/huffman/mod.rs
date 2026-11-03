@@ -11,7 +11,7 @@ pub struct Huffman {
 }
 
 impl Huffman {
-    pub fn from_decoded(input: &Vec<u16>) -> Self {
+    pub fn from_decoded(input: &Vec<u16>) -> (Self, HuffmanNode) {
         let counts = Self::count_symbols(&input);
         let root = HuffmanNode::new(&counts);
 
@@ -20,9 +20,9 @@ impl Huffman {
             counts,
         };
 
-        huffman.make_table(Box::new(root), &mut BitVec::<u8>::new());
+        huffman.make_table(Box::new(root.clone()), &mut BitVec::<u8>::new());
 
-        huffman
+        (huffman, root)
     }
 
     pub fn count_symbols(input: &Vec<u16>) -> HashMap<u16, u32> {
@@ -39,16 +39,17 @@ impl Huffman {
         counts
     }
 
-    pub fn from_encoded(counts: HashMap<u16, u32>) -> Self {
+    // We need root for decode
+    pub fn from_encoded(counts: HashMap<u16, u32>) -> (Self, HuffmanNode) {
         let root = HuffmanNode::new(&counts);
         let mut huffman = Huffman {
             table: HashMap::new(),
             counts,
         };
 
-        huffman.make_table(Box::new(root), &mut BitVec::<u8>::new());
+        huffman.make_table(Box::new(root.clone()), &mut BitVec::<u8>::new());
 
-        huffman
+        (huffman, root)
     }
 
     pub fn make_table(&mut self, curr_node: Box<HuffmanNode>, code: &mut BitVec<u8>) {
@@ -91,25 +92,35 @@ impl Huffman {
         bits
     }
 
-    pub fn decode(&mut self, encoded: &BitVec<u8>) -> Vec<u16> {
-        let mut current = bitvec![];
+    pub fn decode(&mut self, encoded: &BitVec<u8>, huffman_root: &HuffmanNode) -> Option<Vec<u16>> {
         let mut output = Vec::new();
+        let mut current_node = huffman_root;
 
-        for i in 0..encoded.len() {
-            let bit = encoded[i];
-            current.push(bit);
+        for bit in encoded {
+            // We only have root and can't go left or right
+            if huffman_root.left.is_none() && huffman_root.right.is_none() {
+                output.push(current_node.symbol?);
+                continue;
+            }
 
-            self.table
-                .iter()
-                .find(|entry| entry.1.eq(&current))
-                .and_then(|entry| {
-                    current.clear();
-                    let byte = *entry.0;
-                    output.push(byte);
-                    Some(())
-                });
+            current_node = if *bit {
+                current_node.right.as_deref()?
+            } else {
+                current_node.left.as_deref()?
+            };
+
+            // We're on leaf restart from root
+            if current_node.left.is_none() && current_node.right.is_none() {
+                output.push(current_node.symbol?);
+                current_node = huffman_root;
+            }
         }
 
-        output
+        // Making sure that we're on the root (no incompatible symbols)
+        if current_node != huffman_root {
+            return None;
+        }
+
+        Some(output)
     }
 }
