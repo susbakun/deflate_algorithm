@@ -1,14 +1,13 @@
 use std::collections::HashMap;
+use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::PathBuf;
-use std::fs::{self, File};
 
 use anyhow::bail;
 use bitvec::vec::BitVec;
 
 const DEFLATE_FORMAT: &[u8] = "DFLT".as_bytes();
-type ReadHuffmanOutput = (HashMap<u8, u16>, BitVec<u8>);
-
+type ReadHuffmanOutput = (HashMap<u16, u32>, BitVec<u8>);
 
 pub fn read_string_file(file_path: PathBuf) -> Result<String, std::io::Error> {
     fs::read_to_string(file_path)
@@ -34,17 +33,16 @@ pub fn read_huffman_file(file_path: PathBuf) -> Result<ReadHuffmanOutput, anyhow
 
     let mut counts = HashMap::new();
     for _ in 0..num_symbols {
-        let mut byte = [0u8;1];
-        file.read_exact(&mut byte)?;
-        let byte = u8::from_le_bytes(byte);
+        let mut sym_byte = [0u8; 2];
+        file.read_exact(&mut sym_byte)?;
+        let symbol = u16::from_le_bytes(sym_byte);
 
-        let mut freq_bytes = [0u8;2];
+        let mut freq_bytes = [0u8; 4];
         file.read_exact(&mut freq_bytes)?;
-        let freq = u16::from_le_bytes(freq_bytes);
+        let freq = u32::from_le_bytes(freq_bytes);
 
-        counts.insert(byte, freq);
+        counts.insert(symbol, freq);
     }
-
 
     // payload
     let mut count_bytes = [0u8; 8];
@@ -61,9 +59,9 @@ pub fn read_huffman_file(file_path: PathBuf) -> Result<ReadHuffmanOutput, anyhow
 }
 
 pub fn write_bits_to_file(
-    file_path: PathBuf, 
-    payload: &BitVec<u8>, 
-    counts: &HashMap<u8, u16>
+    file_path: PathBuf,
+    payload: &BitVec<u8>,
+    counts: &HashMap<u16, u32>,
 ) -> Result<(), std::io::Error> {
     let mut bytes = Vec::new();
     let mut file = File::create(file_path)?;
@@ -76,11 +74,9 @@ pub fn write_bits_to_file(
     let num_symbols = num_symbols.to_le_bytes();
     header.extend_from_slice(&num_symbols);
 
-    for (byte, freq) in counts {
-        header.push(*byte);
-
-        let freq_bytes = freq.to_le_bytes();
-        header.extend_from_slice(&freq_bytes);
+    for (symbol, freq) in counts {
+        header.extend_from_slice(&symbol.to_le_bytes());
+        header.extend_from_slice(&freq.to_le_bytes());
     }
 
     file.write_all(&header)?;
@@ -88,7 +84,7 @@ pub fn write_bits_to_file(
     // payload bits
     let bit_count = payload.len();
     file.write_all(&bit_count.to_le_bytes())?;
-    
+
     for chunk in payload.chunks(8) {
         let mut byte = 0u8;
         for (i, bit) in chunk.iter().enumerate() {
