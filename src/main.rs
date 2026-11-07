@@ -3,8 +3,9 @@ mod commandline;
 mod utils;
 
 use commandline::CommandLine;
-use lz77::{symbols_to_tokens, tokens_to_symbols};
 use std::fs;
+
+use deflate::bucket::{extra_bits_for, syms_to_tokens, tokens_to_syms};
 
 fn main() {
     let commandline = CommandLine::new();
@@ -17,15 +18,15 @@ fn main() {
 
     if should_compress {
         let input = fs::read(input_path).expect("Failed to read the decompressed file");
-        let lz_encoded = lz77::compress(&input);
-        let symbols = tokens_to_symbols(&lz_encoded);
+        let tokens = lz77::compress(&input);
+        let syms = tokens_to_syms(&tokens);
 
-        huffman::encode(&symbols, &output_path);
+        huffman::encode(&syms, &output_path);
     } else if should_decompress {
-        let huffman_decoded =
-            huffman::decode(&input_path).expect("No matching huffman decoding for the input");
-        let tokens = symbols_to_tokens(&huffman_decoded);
-        let decompressed = lz77::decompress(&tokens).expect("Failed to read the compressed file");
+        let syms = huffman::decode(&input_path, extra_bits_for)
+            .expect("No matching huffman decoding for the input");
+        let tokens = syms_to_tokens(&syms).expect("No matching tokens for the provided syms");
+        let decompressed = lz77::decompress(&tokens);
 
         fs::write(&output_path, decompressed).expect("Failed to write the decompressed file");
         println!("Successfully decompressed and written to {output_path}");

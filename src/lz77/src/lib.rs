@@ -8,47 +8,6 @@ pub enum Token {
     Match { len: u16, dist: u16 },
 }
 
-pub fn symbols_to_tokens(symbols: &Vec<u16>) -> Vec<Token> {
-    let mut tokens = vec![];
-    let mut i = 0;
-
-    while i < symbols.len() {
-        let symbol = symbols[i];
-
-        if symbol < 256 {
-            tokens.push(Token::Lit(symbol as u8));
-        } else {
-            let len = symbols[i] - 256;
-            let dist = symbols[i + 1] - 1000;
-
-            tokens.push(Token::Match { len, dist });
-
-            // skip dist
-            i += 1;
-        }
-
-        i += 1;
-    }
-
-    tokens
-}
-
-pub fn tokens_to_symbols(tokens: &Vec<Token>) -> Vec<u16> {
-    let mut output = Vec::new();
-
-    for token in tokens {
-        match token {
-            Token::Lit(b) => output.push(*b as u16),
-            Token::Match { len, dist } => {
-                output.push(256 + len);
-                output.push(1000 + dist);
-            }
-        }
-    }
-
-    output
-}
-
 pub const MAX_SIZE: usize = 32768; // 32KB
 
 pub fn compress(input: &[u8]) -> Vec<Token> {
@@ -57,9 +16,9 @@ pub fn compress(input: &[u8]) -> Vec<Token> {
     compressed
 }
 
-pub fn decompress(compressed_input: &Vec<Token>) -> Result<String, String> {
+pub fn decompress(compressed_input: &Vec<Token>) -> Vec<u8> {
     let bytes = lz77::decompress(compressed_input);
-    String::from_utf8(bytes).map_err(|_| format!("Couldn't create string from bytes"))
+    bytes
 }
 
 #[cfg(test)]
@@ -71,8 +30,12 @@ mod tests {
         let input = b"ABABABCABCABC";
         let tokens = compress(input);
 
-        assert!(tokens.iter().any(|token| matches!(token, Token::Match { .. })));
-        assert_eq!(decompress(&tokens).unwrap().as_bytes(), input);
+        assert!(
+            tokens
+                .iter()
+                .any(|token| matches!(token, Token::Match { .. }))
+        );
+        assert_eq!(decompress(&tokens), input);
     }
 
     #[test]
@@ -80,24 +43,50 @@ mod tests {
         let tokens = compress(b"");
 
         assert!(tokens.is_empty());
-        assert_eq!(decompress(&tokens).unwrap(), "");
+        assert!(decompress(&tokens).is_empty());
     }
 
     #[test]
-    fn decompression_rejects_invalid_utf8() {
-        let tokens = vec![Token::Lit(0xff)];
+    fn decompression_accepts_arbitrary_bytes() {
+        let tokens = vec![Token::Lit(0xff), Token::Lit(0x00)];
 
-        assert!(decompress(&tokens).is_err());
+        assert_eq!(decompress(&tokens), vec![0xff, 0x00]);
     }
 
     #[test]
-    fn tokens_round_trip_through_huffman_symbols() {
-        let tokens = vec![
-            Token::Lit(b'A'),
-            Token::Match { len: 3, dist: 1 },
-            Token::Lit(b'!'),
-        ];
+    fn overlapping_match_encodes_a_run() {
+        let tokens = compress(b"aaaaaaaaaa");
 
-        assert_eq!(symbols_to_tokens(&tokens_to_symbols(&tokens)), tokens);
+        assert_eq!(
+            tokens,
+            vec![Token::Lit(b'a'), Token::Match { len: 9, dist: 1 }]
+        );
+        assert_eq!(decompress(&tokens), b"aaaaaaaaaa");
+    }
+
+    #[test]
+    fn long_run_is_split_at_max_match_length() {
+        let input = vec![b'x'; 1000];
+        let tokens = compress(&input);
+
+        for token in &tokens {
+            if let Token::Match { len, dist } = token {
+                assert!((3..=258).contains(len));
+                assert!((1..=32768).contains(dist));
+            }
+        }
+        assert_eq!(decompress(&tokens), input);
+    }
+
+    #[test]
+    fn binary_data_round_trips() {
+        let mut input: Vec<u8> = (0..=255u8).cycle().take(2000).collect();
+        let mut x: u32 = 12345;
+        for _ in 0..1000 {
+            x = x.wrapping_mul(1103515245).wrapping_add(12345);
+            input.push((x >> 16) as u8);
+        }
+
+        assert_eq!(decompress(&compress(&input)), input);
     }
 }
