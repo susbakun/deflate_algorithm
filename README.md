@@ -40,10 +40,9 @@ Choose one operation (`--compress` or `--decompress`) per run.
 
 On `mobby_dick.txt` (1,253,984 bytes):
 
-| Version                           | Compressed size | Reduction |
-| --------------------------------- | --------------- | --------- |
-| Exact length and distance symbols | 780,788 bytes   | ~38%      |
-| Length and distance buckets       | _fill in_ bytes | _fill in_ |
+| Compressed size | Reduction |
+| --------------- | --------- |
+| ~591,000 bytes  | ~53%      |
 
 For reference, `gzip` produces about 508 KB on the same text.
 
